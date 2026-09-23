@@ -60,7 +60,11 @@ Push this folder to a GitHub repo. `.gitignore` keeps out `.env`, `data/` (your 
    ```
    This creates `courses`, `users`, and `chats` in Supabase and copies all 234 courses. Add `--with-users` if you also want to copy local accounts and chats.
 
-### 3. Render: backend (Web Service), deploy this first
+### 3. Render
+
+**Quickest way:** use the Blueprint. In Render, click **New → Blueprint**, pick this repo, paste `PORTKEY_API_KEY` and `DATABASE_URL` when Render asks for them, and click **Apply**. [`render.yaml`](render.yaml) creates both services below. If you fork this repo, rename the services in `render.yaml` and update the two URLs in it to match.
+
+**Manual setup, backend (Web Service); deploy this first:**
 - **Root Directory:** `backend`
 - **Runtime:** Python
 - **Build Command:** `pip install -r requirements.txt`
@@ -73,7 +77,7 @@ Push this folder to a GitHub repo. `.gitignore` keeps out `.env`, `data/` (your 
 
 Check `https://<backend>.onrender.com/api/health`. It should show `"database": "postgresql", "courses": 234`.
 
-### 4. Render: frontend (Static Site)
+**Manual setup, frontend (Static Site):**
 - **Root Directory:** `frontend`
 - **Build Command:** `npm ci && npm run build`
 - **Publish Directory:** `dist`

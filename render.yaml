@@ -1,0 +1,33 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repo.
+# Secrets marked `sync: false` are entered in the Render dashboard, never in this file.
+services:
+  # Backend: FastAPI + PydanticAI (deploys first; the frontend points at its URL)
+  - type: web
+    name: lukenagli-som-api
+    runtime: python
+    plan: free
+    region: oregon            # same area as the Supabase database (us-west-2)
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORTKEY_API_KEY
+        sync: false           # paste in the dashboard
+      - key: DATABASE_URL
+        sync: false           # Supabase Session pooler URI; paste in the dashboard
+      - key: JWT_SECRET
+        generateValue: true   # Render generates a random secret
+      - key: FRONTEND_ORIGIN
+        value: https://lukenagli-som-courses.onrender.com
+
+  # Frontend: React + Vite static build
+  - type: web
+    name: lukenagli-som-courses
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://lukenagli-som-api.onrender.com
