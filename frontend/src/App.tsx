@@ -55,7 +55,9 @@ export default function App() {
   if (checking) {
     return (
       <div className="auth-shell">
-        <div className="auth-loading">Loading…</div>
+        <div className="auth-loading">
+          Signing you in… (if the server was asleep, this can take up to a minute)
+        </div>
       </div>
     );
   }

@@ -16,13 +16,49 @@ export function setToken(token: string | null) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+// Free Render instances sleep when idle; the first request can take ~1 minute
+// and may fail outright while the server boots. Poll /api/health until it answers.
+let backendReady: Promise<void> | null = null;
+
+export function waitForBackend(timeoutMs = 120_000): Promise<void> {
+  if (!backendReady) {
+    const attempt = (async () => {
+      const deadline = Date.now() + timeoutMs;
+      for (;;) {
+        try {
+          const res = await fetch(`${BASE}/api/health`);
+          if (res.ok) return;
+        } catch {
+          /* still waking up */
+        }
+        if (Date.now() > deadline) throw new TypeError("Backend unreachable");
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    })();
+    attempt.catch(() => {
+      if (backendReady === attempt) backendReady = null;
+    });
+    backendReady = attempt;
+  }
+  return backendReady;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body) headers.set("Content-Type", "application/json");
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...init, headers });
+  } catch (err) {
+    if (!(err instanceof TypeError)) throw err;
+    // Network-level failure (usually a sleeping server): wait for it, retry once.
+    backendReady = null;
+    await waitForBackend();
+    res = await fetch(`${BASE}${path}`, { ...init, headers });
+  }
   if (res.status === 401) throw new UnauthorizedError(await errorDetail(res));
   if (!res.ok) throw new Error(await errorDetail(res));
   return res.json();

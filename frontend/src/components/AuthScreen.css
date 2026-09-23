@@ -151,3 +151,32 @@
   color: rgba(255, 255, 255, 0.8);
   font-size: 15px;
 }
+
+.auth-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #eef4fc;
+  color: #1d3f6e;
+  border: 1px solid #c9dcf3;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.auth-spinner {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  border: 2px solid #9dbbe3;
+  border-top-color: #00356b;
+  border-radius: 50%;
+  animation: auth-spin 0.8s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { login, signup } from "../api";
+import { useEffect, useState } from "react";
+import { login, signup, waitForBackend } from "../api";
 import type { User } from "../types";
 import "./AuthScreen.css";
 
@@ -16,6 +16,18 @@ export default function AuthScreen({ onAuthed }: Props) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [server, setServer] = useState<"waking" | "ready" | "down">("waking");
+
+  // Start waking the (possibly sleeping) backend while the user types.
+  useEffect(() => {
+    let cancelled = false;
+    waitForBackend()
+      .then(() => !cancelled && setServer("ready"))
+      .catch(() => !cancelled && setServer("down"));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,9 +40,10 @@ export default function AuthScreen({ onAuthed }: Props) {
           : await login(email, password);
       onAuthed(user);
     } catch (err) {
+      if (err instanceof TypeError) setServer("down");
       setError(
         err instanceof TypeError
-          ? "Couldn't reach the server. Is the backend running?"
+          ? "Couldn't reach the server. Please try again in a minute."
           : (err as Error).message
       );
     } finally {
@@ -51,6 +64,18 @@ export default function AuthScreen({ onAuthed }: Props) {
           <h1 className="auth-title">Yale SOM</h1>
           <p className="auth-subtitle">Fall 2026 Course Explorer</p>
         </div>
+
+        {server === "waking" && (
+          <div className="auth-notice" role="status">
+            <span className="auth-spinner" aria-hidden="true" />
+            Waking up the server. The free hosting sleeps when idle, so this can take up to a minute.
+          </div>
+        )}
+        {server === "down" && !error && (
+          <div className="auth-error" role="alert">
+            The server isn't responding right now. Please refresh in a minute.
+          </div>
+        )}
 
         <div className="auth-tabs" role="tablist">
           <button
@@ -116,7 +141,9 @@ export default function AuthScreen({ onAuthed }: Props) {
           {error && <div className="auth-error" role="alert">{error}</div>}
 
           <button type="submit" className="auth-submit" disabled={busy}>
-            {busy ? "…" : mode === "signup" ? "Create account" : "Sign in"}
+            {busy
+              ? server === "ready" ? "…" : "Connecting…"
+              : mode === "signup" ? "Create account" : "Sign in"}
           </button>
         </form>
 
